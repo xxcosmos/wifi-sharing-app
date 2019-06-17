@@ -1,7 +1,11 @@
 import 'dart:convert';
+import 'dart:core';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:wifi_sharing_app/common/model/account.dart';
+import 'package:wifi_sharing_app/common/utils/name_list.dart';
 import '../common/utils/http.dart';
 
 class WiFiBody extends StatefulWidget {
@@ -11,9 +15,12 @@ class WiFiBody extends StatefulWidget {
 class _WiFiBodyState extends State<WiFiBody> {
   String text = '';
   String buttonText = '连接';
-  String username = "201713137042";
-  String password = "10271027";
+  String username = "201713137012";
+  String password = "1027";
   String url = "http://202.114.240.108:8080/zportal/";
+  String result = '';
+
+  Future<AccountList> accountList = decodeAccountList();
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +44,7 @@ class _WiFiBodyState extends State<WiFiBody> {
                   text = "正在连接ing";
                 });
 
-                FormData formData = new FormData.from({
+                FormData formData =  FormData.from({
                   "qrCodeId": "请输入编号",
                   "username": username,
                   "pwd": password,
@@ -53,21 +60,37 @@ class _WiFiBodyState extends State<WiFiBody> {
                     .post("http://202.114.240.108:8080/zportal/login/do",
                         data: formData)
                     .then((res) {
-                  Map<String, dynamic> result =
+                  Map<String, dynamic> resultMap =
                       json.decode(res.data.toString());
-                  if (result['result'] == 'success') {
-                    text = res.data.toString();
-                  } else if (result['result'] == 'fail') {
+                  if (resultMap['result'] == 'success'||resultMap['result']=='online') {
                     setState(() {
-                      text = result['message'] + result['result'];
+                      text = "连接成功";
+                    });
+                  } else if (resultMap['result'] == 'fail') {
+                    accountList.then((value) {
+                      int index = Random().nextInt(value.accountList.length);
+                      debugPrint(value.accountList.length.toString());
+                      Account account = value.accountList.elementAt(index);
+                      debugPrint(account.toString());
+                      setState(() {
+                        if (account != null) {
+                          username = account.username;
+                          password = account.idNumber.substring(6, 14);
+                        }
+                        text = resultMap['message'] + '请换一个账号尝试';
+                      });
                     });
                   }
+                  setState(() {
+                    result = res.data.toString();
+                  });
                 }).catchError((error) {
                   setState(() {
                     text = 'error' + error.toString();
                   });
                 });
               }).catchError((e) {
+                // 未连接校园网
                 setState(() {
                   text = "请先连接 WUST_Wireless";
                 });
@@ -76,7 +99,7 @@ class _WiFiBodyState extends State<WiFiBody> {
           ),
           Text('tips: ' + text),
           Text('username: ' + username),
-          Text('password: ' + password),
+          Text('result: '+result),
         ],
       ),
     );
