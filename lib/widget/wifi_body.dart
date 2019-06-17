@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../common/utils/http.dart';
@@ -9,10 +11,10 @@ class WiFiBody extends StatefulWidget {
 class _WiFiBodyState extends State<WiFiBody> {
   String text = '';
   String buttonText = '连接';
-//          onHighlightChanged: onHighlightChanged,
-//          textTheme: textTheme,
-//          clipBehavior: clipBehavior,
-//          materialTapTargetSize: materialTapTargetSize,
+  String username = "201713137042";
+  String password = "10271027";
+  String url = "http://202.114.240.108:8080/zportal/";
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -28,17 +30,17 @@ class _WiFiBodyState extends State<WiFiBody> {
             splashColor: Colors.white,
             shape: CircleBorder(),
             onPressed: () {
-              String url = "http://202.114.240.108:8080/zportal/";
               // String url = "https://www.baidu.com";
               dio.get(url).then((res) {
+                // 连接前提示
                 setState(() {
                   text = "正在连接ing";
                 });
 
                 FormData formData = new FormData.from({
                   "qrCodeId": "请输入编号",
-                  "username": "201713137042",
-                  "pwd": "10271027",
+                  "username": username,
+                  "pwd": password,
                   "validCode": "验证码",
                   "validCodeFlag": "false",
                   "ssid": "b8a9c2a1989e15776af70dbf182bbbe6",
@@ -51,12 +53,18 @@ class _WiFiBodyState extends State<WiFiBody> {
                     .post("http://202.114.240.108:8080/zportal/login/do",
                         data: formData)
                     .then((res) {
-                  setState(() {
+                  Map<String, dynamic> result =
+                      json.decode(res.data.toString());
+                  if (result['result'] == 'success') {
                     text = res.data.toString();
-                  });
+                  } else if (result['result'] == 'fail') {
+                    setState(() {
+                      text = result['message'] + result['result'];
+                    });
+                  }
                 }).catchError((error) {
                   setState(() {
-                    text = error.toString();
+                    text = 'error' + error.toString();
                   });
                 });
               }).catchError((e) {
@@ -66,7 +74,9 @@ class _WiFiBodyState extends State<WiFiBody> {
               });
             },
           ),
-          Text(text),
+          Text('tips: ' + text),
+          Text('username: ' + username),
+          Text('password: ' + password),
         ],
       ),
     );
